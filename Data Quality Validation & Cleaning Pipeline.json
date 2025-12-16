@@ -1,0 +1,411 @@
+{
+  "name": "Data Quality Monitoring v2",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -9328,
+        -1552
+      ],
+      "id": "1fdee62a-def9-41dc-826e-ec2c3a9ceec3",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1UmUFjGPsO0BRqeTCVSp1sy9T4Vq6naDo0hy2p2tzyWA",
+          "mode": "list",
+          "cachedResultName": "Daily Sales Data",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1UmUFjGPsO0BRqeTCVSp1sy9T4Vq6naDo0hy2p2tzyWA/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1UmUFjGPsO0BRqeTCVSp1sy9T4Vq6naDo0hy2p2tzyWA/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -9104,
+        -1552
+      ],
+      "id": "55c7e34f-2dec-44d0-9db1-f7c3a9e6d18b",
+      "name": "Get row(s) in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "3bhwn5xIAdqzpQc6",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "6c79f28a-fff8-4482-8af6-c20d48db97ce",
+              "leftValue": "={{ $json.schema_valid }}",
+              "rightValue": "false",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "a45b6fac-a987-4d8f-bfe4-e66c4f99d4d3",
+              "leftValue": "={{ $json.null_issue_count }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            },
+            {
+              "id": "156cfe3c-2ea8-43a1-a4a8-3e7bd4d9100d",
+              "leftValue": "={{ $json.duplicate_count }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            },
+            {
+              "id": "5121c9f0-9876-4f87-8d5d-060e5bb85faa",
+              "leftValue": "={{ $json.outlier_count }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -8736,
+        -1552
+      ],
+      "id": "332dfeda-be44-4e95-94e9-00fe075ea6e7",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "sendTo": "mahendrajain1998.mj@gmail.com",
+        "subject": "Dataset validation successful — No issues detected",
+        "emailType": "text",
+        "message": "=Hi,\n\nThe dataset has been successfully validated and no data quality issues were detected.\n\n• Schema Validation: {{ $('Check').item.json.schema_valid }}\n• Null Count: {{ $('Check').item.json.null_issue_count }}\n• Duplicate Count: {{ $('Check').item.json.duplicate_count }}  \n• Outlier Count: {{ $('Check').item.json.outlier_count }}\n\nSince no issues were found, the original dataset is already clean and required no modifications.\n\nRegards,  \nMahendra",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -8496,
+        -1392
+      ],
+      "id": "f2b2f805-862e-4f17-ac63-7cd875d885c3",
+      "name": "Send a message",
+      "webhookId": "9f2261a4-e433-4961-80eb-2c43c3a18f12",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "1nweL4n9K5LVVIFv",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Helper: detect NULL / blank / \"NULL\"\nfunction isNullish(value) {\n  if (value === null || value === undefined) return true;\n\n  if (typeof value === \"string\") {\n    const trimmed = value.trim();\n    return trimmed === \"\" || trimmed.toUpperCase() === \"NULL\";\n  }\n\n  return false;\n}\n\n// Helper: median of a *sorted* array (inclusive median)\nfunction median(sortedArr) {\n  const n = sortedArr.length;\n  if (n === 0) return null;\n  const mid = Math.floor(n / 2);\n\n  if (n % 2 === 0) {\n    // even length: average of two middle values\n    return (sortedArr[mid - 1] + sortedArr[mid]) / 2;\n  } else {\n    // odd length: middle value\n    return sortedArr[mid];\n  }\n}\n\n// 1) SCHEMA CHECK\nconst expectedColumns = [\"order_id\", \"order_date\", \"customer_id\", \"amount\", \"country\"];\nlet schema_valid = false;\n\nif (items.length > 0) {\n  const actualColumns = Object.keys(items[0].json);\n  const missingColumns = expectedColumns.filter(col => !actualColumns.includes(col));\n  schema_valid = missingColumns.length === 0;\n}\n\n// 2) NULL CHECK (field-based)\nlet null_issue_count = 0;\n\nitems.forEach((item) => {\n  const row = item.json;\n\n  if (isNullish(row.order_id))    null_issue_count += 1;\n  if (isNullish(row.customer_id)) null_issue_count += 1;\n  if (isNullish(row.amount))      null_issue_count += 1;\n});\n\n// 3) DUPLICATE CHECK (by order_id)\nlet seen = new Set();\nlet duplicates = [];\n\nitems.forEach(item => {\n  const orderId = item.json.order_id;\n  if (!isNullish(orderId)) {\n    if (seen.has(orderId)) duplicates.push(orderId);\n    seen.add(orderId);\n  }\n});\n\nconst duplicate_count = duplicates.length;\n\n// 4) OUTLIER CHECK using your Boxplot (IQR) method\n\nlet q1 = null;\nlet q3 = null;\nlet iqr = null;\nlet lowerBound = null;\nlet upperBound = null;\nlet outlier_count = 0;\n\n// Collect numeric amounts\nconst numericAmounts = items\n  .map(item => {\n    const v = item.json.amount;\n    if (isNullish(v)) return NaN;\n    if (typeof v === \"string\") {\n      const cleaned = v.replace(/,/g, \"\").trim();\n      return Number(cleaned);\n    }\n    return Number(v);\n  })\n  .filter(v => !isNaN(v));\n\n// Only compute quartiles if we have data\nif (numericAmounts.length > 0) {\n  const sorted = numericAmounts.slice().sort((a, b) => a - b);\n  const n = sorted.length;\n\n  // Q2 (we don't actually use it for bounds, but included for correctness)\n  const q2 = median(sorted);\n\n  let lowerHalf, upperHalf;\n  if (n % 2 === 0) {\n    // even: split in half\n    lowerHalf = sorted.slice(0, n / 2);\n    upperHalf = sorted.slice(n / 2);\n  } else {\n    // odd: exclude median from both halves\n    const mid = Math.floor(n / 2);\n    lowerHalf = sorted.slice(0, mid);\n    upperHalf = sorted.slice(mid + 1);\n  }\n\n  q1 = median(lowerHalf);\n  q3 = median(upperHalf);\n  iqr = q3 - q1;\n\n  lowerBound = q1 - 1.5 * iqr;\n  upperBound = q3 + 1.5 * iqr;\n\n  // Count outliers based on [lowerBound, upperBound]\n  items.forEach(item => {\n    const v = item.json.amount;\n    if (isNullish(v)) return;\n\n    let amount = Number(\n      typeof v === \"string\" ? v.replace(/,/g, \"\").trim() : v\n    );\n\n    if (!isNaN(amount) && (amount < lowerBound || amount > upperBound)) {\n      outlier_count += 1;\n    }\n  });\n}\n\n// FINAL OUTPUT (with bounds so you can inspect them)\nreturn [\n  {\n    json: {\n      schema_valid,\n      null_issue_count,\n      duplicate_count,\n      outlier_count,\n      q1,\n      q3,\n      iqr,\n      lower_bound: lowerBound,\n      upper_bound: upperBound\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -8928,
+        -1552
+      ],
+      "id": "6c42ec24-c2cb-4ad4-aaf5-d94769273830",
+      "name": "Check"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1UmUFjGPsO0BRqeTCVSp1sy9T4Vq6naDo0hy2p2tzyWA",
+          "mode": "list",
+          "cachedResultName": "Daily Sales Data",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1UmUFjGPsO0BRqeTCVSp1sy9T4Vq6naDo0hy2p2tzyWA/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 109738692,
+          "mode": "list",
+          "cachedResultName": "cleaned_data",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1UmUFjGPsO0BRqeTCVSp1sy9T4Vq6naDo0hy2p2tzyWA/edit#gid=109738692"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "order_id": "={{ $json.order_id }}",
+            "order_date": "={{ $json.order_date }}",
+            "customer_id": "={{ $json.customer_id }}",
+            "amount": "={{ $json.amount }}",
+            "country": "={{ $json.country }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "order_id",
+              "displayName": "order_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "order_date",
+              "displayName": "order_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "customer_id",
+              "displayName": "customer_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "amount",
+              "displayName": "amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "country",
+              "displayName": "country",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -8288,
+        -1568
+      ],
+      "id": "b130b88a-0760-4014-b369-a4298f837a54",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "3bhwn5xIAdqzpQc6",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get all rows from the \"Get row(s) in sheet\" node\n// IMPORTANT: the name inside \"\" must match the node name exactly\nconst rows = $items(\"Get row(s) in sheet\", 0, 0);\n\n// ---------- Helpers ----------\nfunction isNullish(value) {\n  if (value === null || value === undefined) return true;\n\n  if (typeof value === \"string\") {\n    const trimmed = value.trim();\n    return trimmed === \"\" || trimmed.toUpperCase() === \"NULL\";\n  }\n\n  return false;\n}\n\nfunction median(sortedArr) {\n  const n = sortedArr.length;\n  if (n === 0) return null;\n  const mid = Math.floor(n / 2);\n  if (n % 2 === 0) {\n    return (sortedArr[mid - 1] + sortedArr[mid]) / 2;\n  } else {\n    return sortedArr[mid];\n  }\n}\n\n// ---------- 1) Compute IQR bounds for amount ----------\nconst amounts = rows\n  .map(item => {\n    const v = item.json.amount;   // column \"amount\" from sheet\n    if (isNullish(v)) return NaN;\n    if (typeof v === \"string\") {\n      const cleaned = v.replace(/,/g, \"\").trim();\n      return Number(cleaned);\n    }\n    return Number(v);\n  })\n  .filter(v => !isNaN(v));\n\nlet lowerBound = null;\nlet upperBound = null;\n\nif (amounts.length > 0) {\n  const sorted = amounts.slice().sort((a, b) => a - b);\n  const n = sorted.length;\n\n  const q2 = median(sorted); // not used, but correct\n\n  let lowerHalf, upperHalf;\n  if (n % 2 === 0) {\n    lowerHalf = sorted.slice(0, n / 2);\n    upperHalf = sorted.slice(n / 2);\n  } else {\n    const mid = Math.floor(n / 2);\n    lowerHalf = sorted.slice(0, mid);\n    upperHalf = sorted.slice(mid + 1);\n  }\n\n  const q1 = median(lowerHalf);\n  const q3 = median(upperHalf);\n  const iqr = q3 - q1;\n\n  lowerBound = q1 - 1.5 * iqr;\n  upperBound = q3 + 1.5 * iqr;\n}\n\n// ---------- 2) Filter rows: nulls, duplicates, outliers ----------\nconst cleanRows = [];\nconst seenOrderIds = new Set();\n\nfor (const item of rows) {\n  const row = item.json;\n\n  // Drop rows with null-ish key fields\n  if (\n    isNullish(row.order_id) ||\n    isNullish(row.customer_id) ||\n    isNullish(row.amount)\n  ) {\n    continue;\n  }\n\n  // Drop duplicate order_id (keep first occurrence)\n  if (seenOrderIds.has(row.order_id)) {\n    continue;\n  }\n  seenOrderIds.add(row.order_id);\n\n  // Drop outliers if bounds are defined\n  if (lowerBound !== null && upperBound !== null) {\n    let amount = row.amount;\n    if (typeof amount === \"string\") {\n      amount = Number(amount.replace(/,/g, \"\").trim());\n    } else {\n      amount = Number(amount);\n    }\n\n    if (!isNaN(amount) && (amount < lowerBound || amount > upperBound)) {\n      continue;\n    }\n  }\n\n  // Row passed all checks → keep it\n  cleanRows.push({ json: row });\n}\n\n// Output: cleaned rows as items (for Write-to-Sheet or next nodes)\nreturn cleanRows;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -8496,
+        -1568
+      ],
+      "id": "52640140-ebf1-4579-9c81-2a2847b4e1d1",
+      "name": "Data Cleaning"
+    },
+    {
+      "parameters": {
+        "sendTo": "mahendrajain1998.mj@gmail.com",
+        "subject": "Cleaned dataset",
+        "emailType": "text",
+        "message": "=The latest dataset has been automatically cleaned by our n8n data quality workflow.\n\nThe original dataset contained the following issues:\nSchema Validation: {{ $('Check').item.json.schema_valid }}\nNull Count: {{ $('Check').item.json.null_issue_count }}\nDuplicate Count: {{ $('Check').item.json.duplicate_count }}\nOutlier Count: {{ $('Check').item.json.outlier_count }}\n\nThe attached file contains the cleaned dataset (after removing rows with null key fields, duplicates, and outliers based on the IQR boxplot method).\n\nPlease find the cleaned dataset attached, or open the Google Sheet directly if you prefer.\n\nRegards,  \nMahendra",
+        "options": {
+          "appendAttribution": false,
+          "attachmentsUi": {
+            "attachmentsBinary": [
+              {}
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -7872,
+        -1568
+      ],
+      "id": "e77b5c60-3bba-417a-ab0a-0470f0ec7755",
+      "name": "Send a message1",
+      "webhookId": "9f2261a4-e433-4961-80eb-2c43c3a18f12",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "1nweL4n9K5LVVIFv",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        -8080,
+        -1568
+      ],
+      "id": "4c796fe9-2166-44b6-b3c8-01a51f3fafc1",
+      "name": "Convert to File"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Data Cleaning",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Data Cleaning": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File": {
+      "main": [
+        [
+          {
+            "node": "Send a message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "09fac7dd-077e-4158-b8e3-108c195571c1",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "a4e30b1cf9697ee8f946b93add4e3332461ca56440392c493df49b5916b1ba2c"
+  },
+  "id": "6eohhy2R3t2Lxl4m",
+  "tags": []
+}
