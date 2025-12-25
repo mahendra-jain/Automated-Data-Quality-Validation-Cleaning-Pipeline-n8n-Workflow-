@@ -25,7 +25,7 @@ The workflow runs **without any manual intervention** and ensures that downstrea
 
 ## 🔁 Workflow Architecture
 
-![n8n Workflow](workflow.png)
+![Automated Data Quality Monitoring & Cleaning Pipeline (n8n)]([workflow.png](https://drive.google.com/file/d/1Haromytf9_XlwVrkdYQInHVzZ9QJPQte/view?usp=drive_link))
 
 > Upload the workflow screenshot as `workflow.png` in the repository root.
 
@@ -203,6 +203,7 @@ SQL • Python • Excel/Google Sheets • Power BI/Looker Studio • n8n
 
 ---
 
-## 🔗 Portfolio Link
+## 🔗 Links:
 
-[Click here to view the workflow or related resources](YOUR_LINK_HERE)
+[LinkedIn](https://www.linkedin.com/in/-mahendrajain-/)
+[Portfolio](https://mahendrajainportfolio.netlify.app/)
