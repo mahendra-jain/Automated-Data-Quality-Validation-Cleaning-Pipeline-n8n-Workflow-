@@ -25,9 +25,8 @@ The workflow runs **without any manual intervention** and ensures that downstrea
 
 ## 🔁 Workflow Architecture
 
-![Automated Data Quality Monitoring & Cleaning Pipeline (n8n)](https://google.com)
+![n8n Workflow](https://drive.google.com/file/d/1Haromytf9_XlwVrkdYQInHVzZ9QJPQte/view?usp=drive_link)
 
-> Upload the workflow screenshot as `workflow.png` in the repository root.
 
 ---
 
