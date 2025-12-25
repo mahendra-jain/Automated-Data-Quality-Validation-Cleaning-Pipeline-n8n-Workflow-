@@ -25,7 +25,7 @@ The workflow runs **without any manual intervention** and ensures that downstrea
 
 ## 🔁 Workflow Architecture
 
-![n8n Workflow]("Automated Data Quality Monitoring & Cleaning Pipeline (n8n).png")
+![n8n Workflow](Automated%20Data%20Quality%20Monitoring%20%26%20Cleaning%20Pipeline%20(n8n).png)
 
 ---
 
