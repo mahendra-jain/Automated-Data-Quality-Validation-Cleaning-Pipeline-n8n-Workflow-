@@ -25,8 +25,7 @@ The workflow runs **without any manual intervention** and ensures that downstrea
 
 ## 🔁 Workflow Architecture
 
-![n8n Workflow](https://drive.google.com/file/d/1Haromytf9_XlwVrkdYQInHVzZ9QJPQte/view?usp=drive_link)
-
+![n8n Workflow](![n8n Workflow](https://drive.google.com/uc?export=view&id=1Haromytf9_XlwVrkdYQInHVzZ9QJPQte)
 
 ---
 
