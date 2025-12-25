@@ -64,3 +64,4 @@ A JavaScript **Code Node** checks the dataset for data quality issues.
   "duplicateCount": 1,
   "outlierCount": 1
 }
+### 4️⃣ IF Condition – Data Quality Decision 🔀
