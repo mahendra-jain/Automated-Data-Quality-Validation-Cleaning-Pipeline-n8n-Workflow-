@@ -184,7 +184,7 @@ A parallel Code Node extracts business KPIs from the cleaned dataset.
 ### 👤 Author
 
 **Mahendra Jain**  
-📊 Data Analyst | Automation & Analytics Enthusiast  
+📊 Marketing and Data Analyst | Automation & Analytics Enthusiast  
 
 **Skills:**  
 SQL • Python • Excel/Google Sheets • Power BI/Looker Studio • n8n
@@ -194,4 +194,5 @@ SQL • Python • Excel/Google Sheets • Power BI/Looker Studio • n8n
 ## 🔗 Links:
 
 [LinkedIn](https://www.linkedin.com/in/-mahendrajain-/)
+
 [Portfolio](https://mahendrajainportfolio.netlify.app/)
