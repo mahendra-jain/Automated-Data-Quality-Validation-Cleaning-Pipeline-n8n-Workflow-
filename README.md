@@ -181,16 +181,6 @@ A parallel Code Node extracts business KPIs from the cleaned dataset.
 
 ---
 
-### 📌 Future Enhancements
-
-- Slack / Microsoft Teams notifications  
-- Data quality dashboard (Power BI / Looker Studio)  
-- Row-level error logging  
-- Cloud database integration  
-- AI-based anomaly detection
-
----
-
 ### 👤 Author
 
 **Mahendra Jain**  
